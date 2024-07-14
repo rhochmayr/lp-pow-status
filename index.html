@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LilyPad PoW Signal Checker</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+            text-align: left;
+        }
+        .highlight {
+            background-color: #ffff99; /* Light yellow background */
+        }
+        .loading {
+            font-size: 1.2em;
+            color: #007bff;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LilyPad PoW Signal Checker</h1>
+    <div id="loading" class="loading">Loading data, please wait...</div>
+    <div id="inputSection" style="display:none;">
+        <label for="specificAddress">Address to check: </label>
+        <input type="text" id="specificAddress" placeholder="0x...">
+        <button onclick="updateTables()">Check Address</button>
+    </div>
+    <div id="output"></div>
+
+    <script>
+        const address = "0x8B852BA45293d6dd51B10c57625C6c5f25ADFB40";
+        let page = 1;
+        const offset = 10000;
+        const startBlock = 59995526;
+        let endBlock = 70000000;
+        const baseUri = `https://api-sepolia.arbiscan.io/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=${offset}&sort=desc`;
+        let allResults = [];
+
+        window.onload = () => {
+            fetchTransactions();
+        };
+
+        async function fetchTransactions() {
+            let uri = baseUri;
+            let hasMore = true;
+
+            while (hasMore) {
+                const response = await fetch(uri);
+                const data = await response.json();
+
+                if (data.result.length < offset) {
+                    hasMore = false;
+                } else {
+                    endBlock = data.result[data.result.length - 1].blockNumber;
+                    uri = `https://api-sepolia.arbiscan.io/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=${offset}&sort=desc`;
+                }
+
+                data.result.forEach(tx => {
+                    allResults.push({
+                        blockNumber: tx.blockNumber,
+                        timeStamp: new Date(tx.timeStamp * 1000),
+                        from: tx.from,
+                        to: tx.to,
+                        value: tx.value,
+                        gas: tx.gas,
+                        gasPrice: tx.gasPrice,
+                        input: tx.input,
+                        nonce: tx.nonce,
+                        methodId: tx.methodId
+                    });
+                });
+            }
+
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("inputSection").style.display = "block";
+            displayResults();
+        }
+
+        function updateTables() {
+            displayResults();
+        }
+
+        function displayResults() {
+            const output = document.getElementById("output");
+            const specificAddress = document.getElementById("specificAddress").value.trim().toLowerCase();
+
+            // Count of all results
+            const count = allResults.length;
+            output.innerHTML = `<p>Total PoW signals received: ${count}</p>`;
+
+            // Transactions with methodId 0xda8accf9, grouped by 'From' address and counted
+            const filteredByMethodId = allResults.filter(tx => tx.methodId === "0xda8accf9");
+            const groupedByFrom = groupBy(filteredByMethodId, 'from');
+            const fromCounts = Object.entries(groupedByFrom).map(([key, value]) => ({ Name: key, Count: value.length })).sort((a, b) => b.Count - a.Count);
+
+            let tableHtml = `<h2>PoW Records by Nodes</h2><table><thead><tr><th>Address</th><th>Count</th></tr></thead><tbody>`;
+            fromCounts.forEach(row => {
+                const highlightClass = row.Name.toLowerCase() === specificAddress ? 'highlight' : '';
+                tableHtml += `<tr class="${highlightClass}"><td>${row.Name}</td><td>${row.Count}</td></tr>`;
+            });
+            tableHtml += `</tbody></table>`;
+            output.innerHTML += tableHtml;
+
+            if (specificAddress) {
+                // Group by days for the specified address and methodId
+                const groupedByDay = groupBy(
+                    filteredByMethodId.filter(tx => tx.from.toLowerCase() === specificAddress),
+                    tx => tx.timeStamp.toISOString().split('T')[0]
+                );
+                const dayCounts = Object.entries(groupedByDay).map(([key, value]) => ({ Date: key, Count: value.length }));
+
+                let dayTableHtml = `<h2>Daily PoW Records for Specific Address</h2><table><thead><tr><th>Date</th><th>Count</th></tr></thead><tbody>`;
+                dayCounts.forEach(row => {
+                    dayTableHtml += `<tr><td>${row.Date}</td><td>${row.Count}</td></tr>`;
+                });
+                dayTableHtml += `</tbody></table>`;
+                output.innerHTML += dayTableHtml;
+
+                // Group by hours for the specified address and methodId
+                const groupedByHour = groupBy(
+                    filteredByMethodId.filter(tx => tx.from.toLowerCase() === specificAddress),
+                    tx => tx.timeStamp.toISOString().split(':')[0]
+                );
+                const hourCounts = Object.entries(groupedByHour).map(([key, value]) => ({ Hour: key, Count: value.length }));
+
+                let hourTableHtml = `<h2>Hourly PoW Records for Specific Address</h2><table><thead><tr><th>Hour</th><th>Count</th></tr></thead><tbody>`;
+                hourCounts.forEach(row => {
+                    hourTableHtml += `<tr><td>${row.Hour}</td><td>${row.Count}</td></tr>`;
+                });
+                hourTableHtml += `</tbody></table>`;
+                output.innerHTML += hourTableHtml;
+            }
+        }
+
+        function groupBy(array, keyFn) {
+            return array.reduce((result, item) => {
+                const key = typeof keyFn === 'function' ? keyFn(item) : item[keyFn];
+                if (!result[key]) {
+                    result[key] = [];
+                }
+                result[key].push(item);
+                return result;
+            }, {});
+        }
+    </script>
+</body>
+</html>
