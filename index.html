@@ -4,7 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LilyPad PoW Signal Checker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+        }
+        label {
+            font-weight: 500;
+            margin-bottom: 10px;
+            display: block;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .loading {
+            font-size: 1.2em;
+            color: #007bff;
+            margin-top: 20px;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -12,31 +66,28 @@
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 12px;
+            text-align: left;
         }
         th {
             background-color: #f2f2f2;
-            text-align: left;
         }
         .highlight {
             background-color: #ffff99; /* Light yellow background */
-        }
-        .loading {
-            font-size: 1.2em;
-            color: #007bff;
-            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <h1>LilyPad PoW Signal Checker</h1>
-    <div id="loading" class="loading">Loading data, please wait...</div>
-    <div id="inputSection" style="display:none;">
-        <label for="specificAddress">Address to check: </label>
-        <input type="text" id="specificAddress" placeholder="0x...">
-        <button onclick="updateTables()">Check Address</button>
+    <div class="container">
+        <div id="loading" class="loading">Loading data, please wait...</div>
+        <div id="inputSection" style="display:none;">
+            <label for="specificAddress">Address to check:</label>
+            <input type="text" id="specificAddress" placeholder="0x...">
+            <button onclick="updateTables()">Check Address</button>
+        </div>
+        <div id="output"></div>
     </div>
-    <div id="output"></div>
 
     <script>
         const address = "0x8B852BA45293d6dd51B10c57625C6c5f25ADFB40";
